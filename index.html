@@ -1,0 +1,62 @@
+<html>
+<head>
+<title>IMDB Sentiment Analysis Demo</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+<style>
+body { font-family: Arial; margin: 20px; }
+textarea { width: 400px; height: 100px; }
+button { margin-top: 10px; }
+#status, #tokens, #output { margin-top: 10px; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>IMDB Movie Review Sentiment Analysis</h1>
+<p>This demo predicts the sentiment (positive/negative) of a movie review using a pre-trained TensorFlow.js model.</p>
+<p><strong>Note: This model only works on English sentences and is designed specifically for movie reviews (biorecensioner). The entered words will be translated to tokens and displayed below.</strong></p>
+  <textarea id="input-text" placeholder="Enter an English movie review here..."></textarea>
+
+<button onclick="predict()">Predict Sentiment</button>
+  Status: Ready
+  Tokens: 
+  Prediction: 
+  <script>
+    let model, metadata;
+
+    async function loadModel() {
+      document.getElementById('status').innerHTML = 'Status: Loading model...';
+      model = await tf.loadLayersModel('./tfjs_model/model.json');
+      const metadataJson = await fetch('./tfjs_model/metadata.json');
+      metadata = await metadataJson.json();
+      // Override max_len to match model input (known inconsistency in metadata)
+      metadata.max_len = 256;
+      document.getElementById('status').innerHTML = 'Status: Model loaded!';
+    }
+
+    function tokenize(text) {
+      const words = text.toLowerCase().split(/\s+/);
+      const sequence = words.map(word => metadata.word_index[word] || metadata.word_index['<oov>']);
+      const padded = Array(metadata.max_len).fill(0);
+      const startIdx = Math.max(0, metadata.max_len - sequence.length);
+      sequence.slice(-metadata.max_len).forEach((val, i) => { padded[startIdx + i] = val; });
+      return { sequence, padded };
+    }
+
+    async function predict() {
+      const inputText = document.getElementById('input-text').value;
+      if (!model) await loadModel();
+      
+      const { sequence, padded } = tokenize(inputText);
+      document.getElementById('tokens').innerHTML = `Tokens: [${sequence.join(', ')}] (padded to ${metadata.max_len})`;
+      
+      const input = tf.tensor2d([padded]);
+      const prediction = model.predict(input).dataSync()[0];
+      const sentiment = prediction > 0.5 ? 'Positive' : 'Negative';
+      const confidence = (prediction * 100).toFixed(2);
+      
+      document.getElementById('output').innerHTML = `Prediction: ${sentiment} (Confidence: ${confidence}%)`;
+    }
+
+    loadModel();  // Load model on page load
+  &#x3C;/script>
+&#x3C;/body>
+&#x3C;/html></oov>
