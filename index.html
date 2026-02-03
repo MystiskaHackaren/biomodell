@@ -1,62 +1,227 @@
-<html>
+<!doctype html>
+<html lang="sv">
 <head>
-<title>IMDB Sentiment Analysis Demo</title>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
-<style>
-body { font-family: Arial; margin: 20px; }
-textarea { width: 400px; height: 100px; }
-button { margin-top: 10px; }
-#status, #tokens, #output { margin-top: 10px; font-weight: bold; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>IMDB Sentiment Analyzer</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+  <style>
+    :root {
+      --bg: #f0f4f8;
+      --text: #2d3748;
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --accent: #10b981;
+      --error: #ef4444;
+    }
+    body.dark {
+      --bg: #1a202c;
+      --text: #e2e8f0;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      transition: background 0.4s, color 0.4s;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      padding: 2rem;
+      transition: background 0.4s;
+    }
+    body.dark .container { background: #2d3748; }
+    h1 {
+      text-align: center;
+      color: var(--primary);
+      margin-bottom: 1rem;
+    }
+    .note {
+      background: #fef3c7;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+    body.dark .note { background: #78350f; color: #fef3c7; }
+    textarea {
+      width: 100%;
+      height: 140px;
+      padding: 1rem;
+      border: 2px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 1rem;
+      resize: vertical;
+      transition: border-color 0.2s;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+    }
+    button {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      border: none;
+      padding: 0.9rem 1.8rem;
+      font-size: 1.1rem;
+      border-radius: 50px;
+      cursor: pointer;
+      margin: 1rem auto;
+      display: block;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+    }
+    button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(99,102,241,0.4); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    #status, #tokens, #output {
+      margin: 1.2rem 0;
+      padding: 1rem;
+      border-radius: 8px;
+      background: #f3f4f6;
+    }
+    body.dark #status, body.dark #tokens, body.dark #output { background: #374151; }
+    #status.loading { color: var(--primary); font-weight: bold; }
+    #status.error { color: var(--error); background: #fee2e2; }
+    body.dark #status.error { background: #7f1d1d; }
+    .progress-bar {
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.6s ease;
+    }
+    footer { text-align: center; margin-top: 2rem; font-size: 0.9rem; opacity: 0.7; }
+  </style>
 </head>
 <body>
-<h1>IMDB Movie Review Sentiment Analysis</h1>
-<p>This demo predicts the sentiment (positive/negative) of a movie review using a pre-trained TensorFlow.js model.</p>
-<p><strong>Note: This model only works on English sentences and is designed specifically for movie reviews (biorecensioner). The entered words will be translated to tokens and displayed below.</strong></p>
-  <textarea id="input-text" placeholder="Enter an English movie review here..."></textarea>
+  <div class="container">
+    <h1>IMDB Sentiment Analyzer</h1>
+    
+    <div class="note">
+      <strong>Viktigt:</strong> Denna modell fungerar <strong>endast på engelska meningar</strong> och är tränad specifikt på <strong>filmrecensioner (biorecensioner)</strong>.<br>
+      Inmatade ord översätts till tokens (visas nedan) innan prediktion.
+    </div>
 
-<button onclick="predict()">Predict Sentiment</button>
-  Status: Ready
-  Tokens: 
-  Prediction: 
+    <textarea id="input-text" placeholder="Skriv in en engelsk filmrecension här... (t.ex. 'This movie was absolutely fantastic and thrilling!')"></textarea>
+    
+    <button id="predict-btn">Analysera recension</button>
+
+    <div id="status">Status: Väntar på modell...</div>
+    <div id="tokens">Tokens: —</div>
+    <div id="output">Prediktion: —</div>
+    <div id="confidence-bar" class="progress-bar"><div id="progress-fill" class="progress-fill" style="width:0%"></div></div>
+
+    <footer>Powered by TensorFlow.js • Modell tränad på IMDB-datasetet</footer>
+  </div>
+
   <script>
-    let model, metadata;
+    let model = null;
+    let metadata = null;
+    const btn = document.getElementById('predict-btn');
+    const statusEl = document.getElementById('status');
+    const tokensEl = document.getElementById('tokens');
+    const outputEl = document.getElementById('output');
+    const progress = document.getElementById('progress-fill');
 
     async function loadModel() {
-      document.getElementById('status').innerHTML = 'Status: Loading model...';
-      model = await tf.loadLayersModel('./tfjs_model/model.json');
-      const metadataJson = await fetch('./tfjs_model/metadata.json');
-      metadata = await metadataJson.json();
-      // Override max_len to match model input (known inconsistency in metadata)
-      metadata.max_len = 256;
-      document.getElementById('status').innerHTML = 'Status: Model loaded!';
+      try {
+        statusEl.textContent = 'Laddar modell... (kan ta 5–15 sekunder första gången)';
+        statusEl.className = 'loading';
+
+        model = await tf.loadLayersModel('./tfjs_model/model.json');
+        
+        const res = await fetch('./tfjs_model/metadata.json');
+        if (!res.ok) throw new Error('Kunde inte ladda metadata.json');
+        metadata = await res.json();
+
+        // Tvinga rätt längd – metadata har fel värde (20 istället för 256)
+        metadata.max_len = 256;
+        console.log('Modell laddad | max_len korrigerad till:', metadata.max_len);
+
+        statusEl.textContent = 'Modell redo! Skriv en recension och klicka Analysera.';
+        statusEl.className = '';
+      } catch (err) {
+        console.error('Laddningsfel:', err);
+        statusEl.textContent = 'Fel vid laddning: ' + err.message + '\nKontrollera konsolen (F12) och att tfjs_model-mappen finns på GitHub Pages.';
+        statusEl.className = 'error';
+        btn.disabled = true;
+      }
     }
 
     function tokenize(text) {
-      const words = text.toLowerCase().split(/\s+/);
-      const sequence = words.map(word => metadata.word_index[word] || metadata.word_index['<oov>']);
-      const padded = Array(metadata.max_len).fill(0);
-      const startIdx = Math.max(0, metadata.max_len - sequence.length);
-      sequence.slice(-metadata.max_len).forEach((val, i) => { padded[startIdx + i] = val; });
+      if (!metadata) return { sequence: [], padded: [] };
+      const words = text.toLowerCase().trim().split(/\s+/).filter(w => w);
+      const sequence = words.map(w => metadata.word_index[w] || metadata.word_index['<OOV>'] || 0);
+      const padded = new Array(metadata.max_len).fill(0);
+      // Post-padding som i din Keras-kod (padding='post')
+      const start = Math.max(0, metadata.max_len - sequence.length);
+      sequence.slice(-metadata.max_len).forEach((val, i) => {
+        padded[start + i] = val;
+      });
       return { sequence, padded };
     }
 
     async function predict() {
-      const inputText = document.getElementById('input-text').value;
+      const text = document.getElementById('input-text').value.trim();
+      if (!text) {
+        outputEl.textContent = 'Skriv något först!';
+        return;
+      }
+
+      btn.disabled = true;
+      statusEl.textContent = 'Analyserar...';
+      
       if (!model) await loadModel();
-      
-      const { sequence, padded } = tokenize(inputText);
-      document.getElementById('tokens').innerHTML = `Tokens: [${sequence.join(', ')}] (padded to ${metadata.max_len})`;
-      
-      const input = tf.tensor2d([padded]);
-      const prediction = model.predict(input).dataSync()[0];
-      const sentiment = prediction > 0.5 ? 'Positive' : 'Negative';
-      const confidence = (prediction * 100).toFixed(2);
-      
-      document.getElementById('output').innerHTML = `Prediction: ${sentiment} (Confidence: ${confidence}%)`;
+      if (!model) return;
+
+      try {
+        const { sequence, padded } = tokenize(text);
+        tokensEl.textContent = `Tokens (${sequence.length} st): [${sequence.slice(0,30).join(', ')}${sequence.length > 30 ? '...' : ''}] (padded till ${metadata.max_len})`;
+
+        const inputTensor = tf.tensor2d([padded]);
+        const pred = model.predict(inputTensor);
+        const score = (await pred.data())[0];
+        const sentiment = score > 0.5 ? 'Positiv' : 'Negativ';
+        const confidence = Math.round(Math.abs(score - 0.5) * 200); // 0–100%
+
+        outputEl.innerHTML = `<strong>Prediktion:</strong> ${sentiment}<br><small>(Sannolikhet för positiv: ${(score * 100).toFixed(1)}%)</small>`;
+        progress.style.width = `${confidence}%`;
+        progress.style.background = score > 0.5 ? 'var(--accent)' : 'var(--error)';
+
+        inputTensor.dispose();
+        pred.dispose();
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = 'Prediktionsfel: ' + err.message;
+        statusEl.className = 'error';
+      } finally {
+        btn.disabled = false;
+        statusEl.className = '';
+      }
     }
 
-    loadModel();  // Load model on page load
-  &#x3C;/script>
-&#x3C;/body>
-&#x3C;/html></oov>
+    // Ladda modell direkt vid sidladdning
+    loadModel();
+
+    // Klick-händelse
+    btn.addEventListener('click', predict);
+
+    // Extra: Dark mode toggle (valfritt, cool touch)
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.body.classList.add('dark');
+    }
+  </script>
+</body>
+</html>
