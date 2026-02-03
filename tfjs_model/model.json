@@ -1,7 +1,7 @@
 {
   "format": "layers-model",
   "generatedBy": "keras v3.10.0",
-  "convertedBy": "TensorFlow.js Converter v4.22.0",
+  "convertedBy": "TensorFlow.js Converter v4.22.0 (manually fixed for compatibility)",
   "modelTopology": {
     "keras_version": "3.10.0",
     "backend": "tensorflow",
@@ -13,23 +13,18 @@
         "dtype": {
           "module": "keras",
           "class_name": "DTypePolicy",
-          "config": {
-            "name": "float32"
-          },
+          "config": { "name": "float32" },
           "registered_name": null
         },
         "layers": [
           {
             "class_name": "InputLayer",
             "config": {
+              "batchInputShape": [null, 256],
               "dtype": "float32",
               "sparse": false,
               "ragged": false,
-              "name": "input_layer",
-              "batchInputShape": [
-                null,
-                256
-              ]
+              "name": "input_layer"
             }
           },
           {
@@ -37,26 +32,10 @@
             "config": {
               "name": "embedding",
               "trainable": true,
-              "dtype": {
-                "module": "keras",
-                "class_name": "DTypePolicy",
-                "config": {
-                  "name": "float32"
-                },
-                "registered_name": null
-              },
+              "dtype": { "module": "keras", "class_name": "DTypePolicy", "config": { "name": "float32" }, "registered_name": null },
               "input_dim": 10000,
               "output_dim": 16,
-              "embeddings_initializer": {
-                "module": "keras.initializers",
-                "class_name": "RandomUniform",
-                "config": {
-                  "seed": null,
-                  "minval": -0.05,
-                  "maxval": 0.05
-                },
-                "registered_name": null
-              },
+              "embeddings_initializer": { "module": "keras.initializers", "class_name": "RandomUniform", "config": { "minval": -0.05, "maxval": 0.05 }, "registered_name": null },
               "embeddings_regularizer": null,
               "activity_regularizer": null,
               "embeddings_constraint": null,
@@ -68,14 +47,7 @@
             "config": {
               "name": "pooling",
               "trainable": true,
-              "dtype": {
-                "module": "keras",
-                "class_name": "DTypePolicy",
-                "config": {
-                  "name": "float32"
-                },
-                "registered_name": null
-              },
+              "dtype": { "module": "keras", "class_name": "DTypePolicy", "config": { "name": "float32" }, "registered_name": null },
               "data_format": "channels_last",
               "keepdims": false
             }
@@ -85,31 +57,12 @@
             "config": {
               "name": "dense_hidden",
               "trainable": true,
-              "dtype": {
-                "module": "keras",
-                "class_name": "DTypePolicy",
-                "config": {
-                  "name": "float32"
-                },
-                "registered_name": null
-              },
+              "dtype": { "module": "keras", "class_name": "DTypePolicy", "config": { "name": "float32" }, "registered_name": null },
               "units": 16,
               "activation": "relu",
               "use_bias": true,
-              "kernel_initializer": {
-                "module": "keras.initializers",
-                "class_name": "GlorotUniform",
-                "config": {
-                  "seed": null
-                },
-                "registered_name": null
-              },
-              "bias_initializer": {
-                "module": "keras.initializers",
-                "class_name": "Zeros",
-                "config": {},
-                "registered_name": null
-              },
+              "kernel_initializer": { "module": "keras.initializers", "class_name": "GlorotUniform", "config": { "seed": null }, "registered_name": null },
+              "bias_initializer": { "module": "keras.initializers", "class_name": "Zeros", "config": {}, "registered_name": null },
               "kernel_regularizer": null,
               "bias_regularizer": null,
               "kernel_constraint": null,
@@ -121,31 +74,12 @@
             "config": {
               "name": "output",
               "trainable": true,
-              "dtype": {
-                "module": "keras",
-                "class_name": "DTypePolicy",
-                "config": {
-                  "name": "float32"
-                },
-                "registered_name": null
-              },
+              "dtype": { "module": "keras", "class_name": "DTypePolicy", "config": { "name": "float32" }, "registered_name": null },
               "units": 1,
               "activation": "sigmoid",
               "use_bias": true,
-              "kernel_initializer": {
-                "module": "keras.initializers",
-                "class_name": "GlorotUniform",
-                "config": {
-                  "seed": null
-                },
-                "registered_name": null
-              },
-              "bias_initializer": {
-                "module": "keras.initializers",
-                "class_name": "Zeros",
-                "config": {},
-                "registered_name": null
-              },
+              "kernel_initializer": { "module": "keras.initializers", "class_name": "GlorotUniform", "config": { "seed": null }, "registered_name": null },
+              "bias_initializer": { "module": "keras.initializers", "class_name": "Zeros", "config": {}, "registered_name": null },
               "kernel_regularizer": null,
               "bias_regularizer": null,
               "kernel_constraint": null,
@@ -153,18 +87,13 @@
             }
           }
         ],
-        "build_input_shape": [
-          1,
-          256
-        ]
+        "build_input_shape": [null, 256]
       }
     },
     "training_config": {
       "loss": "binary_crossentropy",
       "loss_weights": null,
-      "metrics": [
-        "accuracy"
-      ],
+      "metrics": ["accuracy"],
       "weighted_metrics": null,
       "run_eagerly": false,
       "steps_per_execution": 1,
@@ -193,46 +122,31 @@
   },
   "weightsManifest": [
     {
-      "paths": [
-        "group1-shard1of1.bin"
-      ],
+      "paths": ["group1-shard1of1.bin"],
       "weights": [
         {
+          "name": "sequential/embedding/embeddings",
+          "shape": [10000, 16],
+          "dtype": "float32"
+        },
+        {
           "name": "sequential/dense_hidden/kernel",
-          "shape": [
-            16,
-            16
-          ],
+          "shape": [16, 16],
           "dtype": "float32"
         },
         {
           "name": "sequential/dense_hidden/bias",
-          "shape": [
-            16
-          ],
-          "dtype": "float32"
-        },
-        {
-          "name": "sequential/embedding/embeddings",
-          "shape": [
-            10000,
-            16
-          ],
+          "shape": [16],
           "dtype": "float32"
         },
         {
           "name": "sequential/output/kernel",
-          "shape": [
-            16,
-            1
-          ],
+          "shape": [16, 1],
           "dtype": "float32"
         },
         {
           "name": "sequential/output/bias",
-          "shape": [
-            1
-          ],
+          "shape": [1],
           "dtype": "float32"
         }
       ]
