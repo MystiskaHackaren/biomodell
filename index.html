@@ -1,259 +1,132 @@
-<html lang="sv">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Min AI-Modell (Keras/TFJS) - Tokyo Drift Edition</title>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Racing+Sans+One&display=swap" rel="stylesheet">
-<style>
-body {
-font-family: 'Orbitron', sans-serif;
-background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
-color: #00ffff; /* Neon cyan */
-margin: 0;
-padding: 0;
-overflow: hidden;
-position: relative;
-min-height: 100vh;
-}
-body::before {
-content: '';
-position: absolute;
-top: 0;
-left: 0;
-width: 100%;
-height: 100%;
-background: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="none"/%3E%3Cpath d="M0 50 L100 50" stroke="%2300ffff" stroke-width="2" stroke-dasharray="5,5" opacity="0.2"/%3E%3Cpath d="M50 0 L50 100" stroke="%23ff00ff" stroke-width="2" stroke-dasharray="5,5" opacity="0.2"/%3E%3C/svg%3E') repeat;
-opacity: 0.1;
-animation: drift-bg 20s linear infinite;
-}
-@keyframes drift-bg {
-0% { background-position: 0 0; }
-100% { background-position: 200% 200%; }
-}
-.container {
-max-width: 700px;
-margin: 4rem auto;
-padding: 2rem;
-background: rgba(0, 0, 0, 0.8);
-border: 2px solid #ff00ff; /* Neon pink border */
-border-radius: 15px;
-box-shadow: 0 0 30px #00ffff, 0 0 60px #ff00ff;
-position: relative;
-z-index: 1;
-animation: neon-pulse 2s infinite alternate;
-}
-@keyframes neon-pulse {
-0% { box-shadow: 0 0 10px #00ffff, 0 0 20px #ff00ff; }
-100% { box-shadow: 0 0 30px #00ffff, 0 0 60px #ff00ff; }
-}
-h1 {
-font-family: 'Racing Sans One', cursive;
-color: #ff0000; /* Racing red */
-text-shadow: 0 0 10px #ff0000, 0 0 20px #ff00ff;
-font-size: 3rem;
-text-align: center;
-margin-bottom: 1rem;
-letter-spacing: 2px;
-animation: speed-in 1s ease-out;
-}
-@keyframes speed-in {
-0% { transform: translateX(-100%); opacity: 0; }
-100% { transform: translateX(0); opacity: 1; }
-}
-p {
-text-align: center;
-font-size: 1.2rem;
-margin-bottom: 2rem;
-color: #ffffff;
-text-shadow: 0 0 5px #00ffff;
-}
-textarea {
-width: 100%;
-height: 120px;
-background: rgba(255, 255, 255, 0.1);
-border: 2px solid #00ffff;
-border-radius: 10px;
-padding: 15px;
-color: #ffffff;
-font-size: 1.1rem;
-resize: none;
-box-shadow: 0 0 15px #00ffff;
-transition: box-shadow 0.3s;
-}
-textarea:focus {
-outline: none;
-box-shadow: 0 0 30px #00ffff, 0 0 50px #ff00ff;
-}
-button {
-display: block;
-width: 100%;
-padding: 15px;
-font-family: 'Racing Sans One', cursive;
-font-size: 1.5rem;
-background: linear-gradient(135deg, #ff0000, #ff00ff);
-color: #ffffff;
-border: none;
-border-radius: 10px;
-cursor: pointer;
-margin: 1.5rem 0;
-text-shadow: 0 0 5px #000000;
-box-shadow: 0 0 20px #ff0000;
-transition: transform 0.2s, box-shadow 0.2s;
-animation: button-drift 3s infinite alternate;
-}
-@keyframes button-drift {
-0% { transform: skewX(0deg); }
-100% { transform: skewX(5deg); }
-}
-button:hover {
-transform: scale(1.05) skewX(10deg);
-box-shadow: 0 0 40px #ff0000, 0 0 60px #ff00ff;
-}
-button:disabled {
-background: linear-gradient(135deg, #666666, #999999);
-box-shadow: none;
-cursor: not-allowed;
-animation: none;
-}
-#result {
-font-family: 'Orbitron', sans-serif;
-font-size: 2rem;
-text-align: center;
-padding: 1.5rem;
-background: rgba(0, 0, 0, 0.7);
-border: 2px dashed #ff00ff;
-border-radius: 15px;
-margin-top: 2rem;
-text-shadow: 0 0 10px #ffffff;
-animation: result-flash 1s infinite alternate;
-}
-@keyframes result-flash {
-0% { color: #00ffff; }
-100% { color: #ff00ff; }
-}
-#debug-box {
-margin-top: 3rem;
-padding: 1.5rem;
-background: rgba(0, 0, 0, 0.6);
-border: 1px solid #00ffff;
-border-radius: 10px;
-max-height: 200px;
-overflow-y: auto;
-font-family: monospace;
-color: #00ff00; /* Green matrix style */
-box-shadow: 0 0 20px #00ff00;
-}
-.log-entry {
-margin-bottom: 0.5rem;
-animation: fade-in 0.5s;
-}
-@keyframes fade-in {
-0% { opacity: 0; }
-100% { opacity: 1; }
-}
-.log-error { color: #ff0000; text-shadow: 0 0 5px #ff0000; }
-.log-success { color: #00ff00; text-shadow: 0 0 5px #00ff00; }
-</style>
-</head>
-<body>
-<div class="container">
-<h1>Testa min text-AI</h1>
-<p>Skriv en mening nedan (t.ex. "maten var god" eller "jag är arg").</p>
-        <textarea id="textInput" placeholder="Skriv din text här..."></textarea>
-        
+<script>
+    let model;
+    let metadata;
+    const SEQUENCE_LENGTH = 256;
+    const btn = document.getElementById('predictBtn');
 
-        <button id="predictBtn" onclick="runPrediction()" disabled>⏳ Initierar...</button>
-        Resultatet visas här...
-        
-            Debug-logg startad...
-        
-    
-    <script>
-        let model;
-        let metadata;
-        // VIKTIGT: Vi tvingar denna till 256 eftersom din modell kräver det
-        const SEQUENCE_LENGTH = 256;
-        function log(message, type = 'info') {
-            const box = document.getElementById('debug-box');
-            const entry = document.createElement('div');
-            entry.className = 'log-entry';
-            const time = new Date().toLocaleTimeString();
-            entry.innerHTML = `[${time}] ${message}`;
-            if (type === 'error') entry.className += ' log-error';
-            if (type === 'success') entry.className += ' log-success';
-            box.appendChild(entry);
-            box.scrollTop = box.scrollHeight;
-            console.log(`[${type}] ${message}`);
+    function log(message, type = 'info') {
+        const box = document.getElementById('debug-box');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        const time = new Date().toLocaleTimeString();
+        entry.innerHTML = `<span style="color:#888">[${time}]</span> ${message}`;
+        if (type === 'error') entry.className += ' log-error';
+        if (type === 'success') entry.className += ' log-success';
+        box.appendChild(entry);
+        box.scrollTop = box.scrollHeight;
+        console.log(`[${type.toUpperCase()}] ${message}`);
+    }
+
+    async function loadAssets() {
+        try {
+            log("Startar laddning av metadata och modell...");
+
+            // Försök metadata först
+            log("Hämtar metadata från './tfjs_model/metadata.json'...");
+            const metaResponse = await fetch('./tfjs_model/metadata.json');
+            if (!metaResponse.ok) {
+                throw new Error(`Metadata 404 eller fel: ${metaResponse.status} - ${metaResponse.statusText}`);
+            }
+            metadata = await metaResponse.json();
+            log("✅ Metadata OK (word_index laddad)", 'success');
+
+            // Sedan modellen
+            log("Hämtar modell från './tfjs_model/model.json'...");
+            model = await tf.loadLayersModel('./tfjs_model/model.json');
+            log("✅ Modell laddad framgångsrikt!", 'success');
+
+            // Värm upp modellen (dummy predict)
+            tf.tidy(() => {
+                model.predict(tf.zeros([1, SEQUENCE_LENGTH]));
+            });
+            log("Modell uppvärmd och redo för prediktioner.", 'success');
+
+            // Aktivera knappen bara om allt lyckades
+            btn.disabled = false;
+            btn.innerText = "Analysera text";
+            btn.style.background = "linear-gradient(135deg, #00ff9d, #00bfff)"; // cool grön-blå när redo
+
+        } catch (err) {
+            log("KRITISKT FEL under laddning: " + err.message, 'error');
+            console.error(err);
+
+            if (err.message.includes('404')) {
+                log("Vanligt fel: Kolla att mappen heter exakt 'tfjs_model' och att model.json + .bin-filen finns uppladdade på GitHub Pages.", 'error');
+                log("Testa manuellt: Öppna https://dittnamn.github.io/biomodell/tfjs_model/model.json i ny flik – ska visa JSON!", 'error');
+            } else if (err.message.includes('batchInputShape') || err.message.includes('InputLayer')) {
+                log("Modellkompatibilitetsfel (vanligt med Keras 3.x-export). Du behöver troligen fixa InputLayer i model.json som tidigare tips.", 'error');
+            }
+
+            // Visa alert vid totalt misslyckande
+            alert("Modellen kunde inte laddas!\n\nFel: " + err.message + "\n\nKolla debug-loggen och konsolen (F12).");
+
+            // Försök ändå aktivera knappen men visa varning (så användaren kan se debug)
+            btn.disabled = false;
+            btn.innerText = "Försök analysera (modell ej laddad)";
+            btn.style.background = "#ff4444";
         }
-        async function loadAssets() {
-            try {
-                log("1. Försöker hämta 'tfjs_model/metadata.json'...");
-                const metaResponse = await fetch('tfjs_model/metadata.json');
-                if (!metaResponse.ok) throw new Error(`Kunde inte hitta metadata.json (Status: ${metaResponse.status})`);
-metadata = await metaResponse.json();
-log("✅ Metadata laddad.", 'success');
-log("2. Försöker hämta 'tfjs_model/model.json'...");
-model = await tf.loadLayersModel('tfjs_model/model.json');
-log("✅ AI-modellen laddad!", 'success');
-const btn = document.getElementById('predictBtn');
-btn.disabled = false;
-btn.innerText = "Analysera text";
-// Värm upp modellen med korrekt shape [1, 256]
-tf.tidy(() => {
-model.predict(tf.zeros([1, SEQUENCE_LENGTH]));
-});
-log("Redo för input.");
-} catch (err) {
-log("KRITISKT FEL: " + err.message, 'error');
-if (err.message.includes('404')) {
-log("TIPS: Kontrollera att mappen heter 'tfjs_model'.", 'error');
-}
-}
-}
-loadAssets();
-function tokenize(text) {
-const words = text.toLowerCase().replace(/[.,!?;:]/g, '').split(/\s+/);
-const wordIndex = metadata.word_index;
-const OOV_INDEX = 1;
-const PAD_INDEX = 0;
-const sequence = words.map(word => {
-return wordIndex[word] || OOV_INDEX;
-});
-// Padda till exakt 256
-const paddedSequence = new Array(SEQUENCE_LENGTH).fill(PAD_INDEX);
-for (let i = 0; i < Math.min(sequence.length, SEQUENCE_LENGTH); i++) {
-paddedSequence[i] = sequence[i];
-}
-return paddedSequence;
-}
-async function runPrediction() {
-const text = document.getElementById('textInput').value;
-if (!text) { log("Ingen text."); return; }
-try {
-log(Analyserar: "${text}"...);
-const inputIndices = tokenize(text);
-// HÄR VAR FELET INNAN:
-// Vi använder nu SEQUENCE_LENGTH (256) istället för metadata.max_len
-const inputTensor = tf.tensor2d([inputIndices], [1, SEQUENCE_LENGTH]);
-const prediction = model.predict(inputTensor);
-const score = prediction.dataSync()[0];
-const resultDiv = document.getElementById('result');
-const percent = (score * 100).toFixed(1);
-log(Resultat: ${percent}% (Råvärde: ${score}), 'success');
-if (score > 0.5) {
-resultDiv.innerText = Positivt! (${percent}%) ✅;
-resultDiv.style.color = "green";
-} else {
-resultDiv.innerText = Negativt/Neutralt (${percent}%) ❌;
-resultDiv.style.color = "#d00";
-}
-inputTensor.dispose();
-prediction.dispose();
-} catch (e) {
-log("Fel vid analys: " + e.message, 'error');
-}
-}
+    }
+
+    // Starta laddningen direkt
+    loadAssets();
+
+    // Timeout-varning efter 15 sekunder
+    setTimeout(() => {
+        if (btn.disabled) {
+            log("Laddning tar väldigt lång tid (>15s) – troligt nätverks- eller path-fel.", 'error');
+        }
+    }, 15000);
+
+    async function runPrediction() {
+        const text = document.getElementById('textInput').value.trim();
+        if (!text) {
+            log("Ingen text inmatad.", 'error');
+            return;
+        }
+
+        if (!model) {
+            log("Modellen är inte laddad ännu – vänta eller kolla fel i debug.", 'error');
+            return;
+        }
+
+        try {
+            log(`Analyserar: "${text}" ...`);
+            const inputIndices = tokenize(text);
+            const inputTensor = tf.tensor2d([inputIndices], [1, SEQUENCE_LENGTH]);
+            const prediction = model.predict(inputTensor);
+            const score = prediction.dataSync()[0];
+            const percent = (score * 100).toFixed(1);
+
+            const resultDiv = document.getElementById('result');
+            if (score > 0.5) {
+                resultDiv.innerText = `Positivt! (${percent}%) ✅`;
+                resultDiv.style.color = "#00ff9d";
+            } else {
+                resultDiv.innerText = `Negativt (${percent}%) ❌`;
+                resultDiv.style.color = "#ff5555";
+            }
+
+            log(`Prediktion klar: ${percent}% (råvärde ${score.toFixed(4)})`, 'success');
+
+            // Städa upp tensorer
+            inputTensor.dispose();
+            prediction.dispose();
+        } catch (e) {
+            log("Fel vid prediktion: " + e.message, 'error');
+            console.error(e);
+        }
+    }
+
+    function tokenize(text) {
+        const words = text.toLowerCase().replace(/[.,!?;:]/g, '').split(/\s+/).filter(w => w);
+        const wordIndex = metadata?.word_index || {};
+        const OOV_INDEX = 1;
+        const PAD_INDEX = 0;
+        const sequence = words.map(word => wordIndex[word] || OOV_INDEX);
+        const padded = new Array(SEQUENCE_LENGTH).fill(PAD_INDEX);
+        for (let i = 0; i < Math.min(sequence.length, SEQUENCE_LENGTH); i++) {
+            padded[i] = sequence[i];
+        }
+        return padded;
+    }
 </script>
-</body>
-</html>
